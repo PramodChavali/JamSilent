@@ -5,7 +5,6 @@ import scipy.io.wavfile as wavfile
 from datetime import datetime
 import os
 import time
-import threading
 
 # ---------------- SETTINGS ----------------
 SR = 22050
@@ -13,10 +12,9 @@ BUFFER_SIZE = 256
 HOP_SIZE = 64
 
 INPUT_DEVICE  = 1
-OUTPUT_DEVICE = 4
+OUTPUT_DEVICE = 4   # ← change this to 5 for Beats, 20 for AirPods, 7 for wired
 
 sd.default.latency = 'low'
-sd.default.extra_settings = None
 
 # ---------------- AUBIO PITCH DETECTOR ----------------
 pitch_o = aubio.pitch("yinfast", BUFFER_SIZE, HOP_SIZE, SR)
@@ -59,13 +57,10 @@ def save_recording():
     if not recorded_chunks:
         print("Nothing to save.")
         return
-
     audio = np.concatenate(recorded_chunks)
-
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs("recordings", exist_ok=True)
     filename = f"recordings/silentjam_{timestamp}.wav"
-
     wavfile.write(filename, SR, audio)
     print(f"Saved: {filename}")
 
@@ -105,15 +100,12 @@ def input_callback(indata, frames, time_info, status):
     audio = indata[:, 0].astype(np.float32)
 
     t0 = time.perf_counter()
-
     pitch = pitch_o(audio)[0]
     confidence = pitch_o.get_confidence()
-
     t1 = time.perf_counter()
 
     rms = np.mean(audio * audio)
     db  = 10.0 * np.log10(rms + 1e-12)
-
     now = t0
 
     if confidence > conf_threshold and pitch > 0:
@@ -124,8 +116,10 @@ def input_callback(indata, frames, time_info, status):
 
     if confidence > play_conf_threshold and db > play_level_threshold and valid_recently:
         set_pitch(last_pitch)
+        #print(f"Pitch: {last_pitch:7.2f} Hz | Conf: {confidence:.2f} | Level: {db:5.1f} dBFS")
     else:
         set_pitch(0)
+        #print(f"not playing | Level: {db:5.1f} dBFS")
 
 # ---------------- LAUNCH ----------------
 print("Starting Silent Jam...")
@@ -145,12 +139,11 @@ with sd.InputStream(
         callback=output_callback,
         latency='low'
 ):
-    print("Controls: R = start/stop recording | Q = quit")
-
+    print("Controls: 1 = start/stop recording | 0 = quit")
     while True:
-        cmd = input("> ").strip().lower()
+        cmd = input("> ").strip()
 
-        if cmd == "r":
+        if cmd == "1":
             if not is_recording:
                 recorded_chunks.clear()
                 is_recording = True
@@ -160,12 +153,12 @@ with sd.InputStream(
                 print("Recording stopped. Saving...")
                 save_recording()
 
-        elif cmd == "q":
+        elif cmd == "0":
             if is_recording:
                 is_recording = False
                 save_recording()
-            print("Goodbye! Thanks for using the :)")
+            print("Goodbye!")
             break
 
         else:
-            print("Unknown command. R = record | Q = quit")
+            print("Unknown command. 1 = record | 0 = quit")
