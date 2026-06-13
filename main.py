@@ -13,6 +13,11 @@ pitch_o = aubio.pitch("yin", BUFFER_SIZE, HOP_SIZE, SR)
 pitch_o.set_unit("Hz")
 pitch_o.set_silence(-40)
 
+
+
+
+
+
 #ihilhs
 
 # ---------------- STATE (stability layer) ----------------
