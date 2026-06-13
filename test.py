@@ -164,7 +164,7 @@ with sd.InputStream(
             if is_recording:
                 is_recording = False
                 save_recording()
-            print("Goodbye! Thanks for using the BrassPlug :)")
+            print("Goodbye! Thanks for using the :)")
             break
 
         else:
